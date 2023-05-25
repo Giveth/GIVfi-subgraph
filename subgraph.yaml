@@ -1,0 +1,39 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: GIVfiBeefyV6
+    network: optimism-goerli
+    source:
+      address: "0x799E7D9776c4A0392F6829DCB6BDc593d598F7AA"
+      abi: GIVfiBeefyV6
+      startBlock: 9721997
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Approval
+        - FeeRecipientSet
+        - FeeSet
+        - FeesPaid
+        - Initialized
+        - Transfer
+      abis:
+        - name: GIVfiBeefyV6
+          file: ./abis/GIVfiBeefyV6.json
+      eventHandlers:
+        - event: Approval(indexed address,indexed address,uint256)
+          handler: handleApproval
+        - event: FeeRecipientSet(address)
+          handler: handleFeeRecipientSet
+        - event: FeeSet(uint256)
+          handler: handleFeeSet
+        - event: FeesPaid(indexed address,indexed address,uint256,uint256)
+          handler: handleFeesPaid
+        - event: Initialized(uint8)
+          handler: handleInitialized
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/gi-vfi-beefy-v-6.ts
