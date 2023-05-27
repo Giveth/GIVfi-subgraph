@@ -8,11 +8,14 @@
     "create-local": "graph create --node http://localhost:8020/ mateodaza/givfi-op-goerli",
     "remove-local": "graph remove --node http://localhost:8020/ mateodaza/givfi-op-goerli",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 mateodaza/givfi-op-goerli",
-    "test": "graph test"
+    "test": "graph test",
+    "current-deploy": "graph deploy --network optimism-goerli"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.49.0",
     "@graphprotocol/graph-ts": "0.29.1"
   },
-  "devDependencies": { "matchstick-as": "0.5.0" }
+  "devDependencies": {
+    "matchstick-as": "0.5.0"
+  }
 }

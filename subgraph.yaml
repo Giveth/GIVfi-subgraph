@@ -36,4 +36,4 @@ dataSources:
           handler: handleInitialized
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-      file: ./src/gi-vfi-beefy-v-6.ts
+      file: ./src/givfi-beefy-v6.ts
