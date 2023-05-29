@@ -1,6 +1,7 @@
 type Account @entity {
   id: ID!
   balances: [Balance!]! @derivedFrom(field: "account")
+  rewards: BigInt!
 }
 
 type Balance @entity {
