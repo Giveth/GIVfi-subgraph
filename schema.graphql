@@ -1,23 +1,24 @@
 type Account @entity {
-  id: ID!
   deposits: [Deposit!]! @derivedFrom(field: "account")
   withdrawals: [Withdraw!]! @derivedFrom(field: "account")
+  dailyBalances: [DailyBalance!]! @derivedFrom(field: "account")
   rewards: BigInt!
   createdAt: BigInt!
   lastUpdated: BigInt!
+  id: ID!
 }
 
 type Deposit @entity {
+  amount: BigInt!
   id: ID!
   account: Account!
-  amount: BigInt!
   timestamp: BigInt!
 }
 
 type Withdraw @entity {
+  amount: BigInt!
   id: ID!
   account: Account!
-  amount: BigInt!
   timestamp: BigInt!
 }
 
@@ -74,4 +75,11 @@ type Initialized @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
+}
+
+type DailyBalance @entity {
+  account: Account!
+  id: ID!
+  date: String!
+  balance: BigInt!
 }

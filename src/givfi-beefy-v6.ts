@@ -16,6 +16,7 @@ import {
   FeesPaid,
   Deposit,
   Withdraw,
+  DailyBalance,
 } from '../generated/schema';
 
 export function handleApproval(event: ApprovalEvent): void {
@@ -94,7 +95,13 @@ export function handleInitialized(event: InitializedEvent): void {
   // entity.save();
 }
 
-function loadOrCreateAccount(address: string, timestamp: BigInt): Account {
+function loadOrCreateAccount(
+  address: string,
+  timestamp: BigInt
+): Account | null {
+  if (address == '0x0000000000000000000000000000000000000000') {
+    return null;
+  }
   let account = Account.load(address);
   if (account == null) {
     account = new Account(address);
@@ -110,15 +117,19 @@ export function handleTransfer(event: TransferEvent): void {
     event.params.from.toHex(),
     event.block.timestamp
   );
-  fromAccount.lastUpdated = event.block.timestamp;
-  fromAccount.save();
+  if (fromAccount != null) {
+    fromAccount.lastUpdated = event.block.timestamp;
+    fromAccount.save();
+  }
 
   let toAccount = loadOrCreateAccount(
     event.params.to.toHex(),
     event.block.timestamp
   );
-  toAccount.lastUpdated = event.block.timestamp;
-  toAccount.save();
+  if (toAccount != null) {
+    toAccount.lastUpdated = event.block.timestamp;
+    toAccount.save();
+  }
 }
 
 function createDeposit(
@@ -147,15 +158,58 @@ function createWithdraw(
   withdraw.save();
 }
 
+function createOrUpdateDailyBalance(
+  accountId: string,
+  amount: BigInt,
+  timestamp: BigInt,
+  isDeposit: boolean
+): void {
+  // create a date string in the format of 'YYYY-MM-DD' from the timestamp
+  let date = timestampToDate(timestamp);
+  let dailyBalanceId = accountId.concat('-').concat(date.toString());
+
+  let dailyBalance = DailyBalance.load(dailyBalanceId);
+  if (dailyBalance == null) {
+    dailyBalance = new DailyBalance(dailyBalanceId);
+    dailyBalance.account = accountId; // Link to the Account entity
+    dailyBalance.date = date;
+    dailyBalance.balance = BigInt.fromI32(0);
+  }
+
+  // increase or decrease the balance based on the transaction type
+  if (isDeposit) {
+    dailyBalance.balance = dailyBalance.balance.plus(amount);
+  } else {
+    dailyBalance.balance = dailyBalance.balance.minus(amount);
+  }
+  dailyBalance.save();
+}
+
+function timestampToDate(timestamp: BigInt): string {
+  // convert the timestamp to a date string in the format of 'YYYY-MM-DD'
+  // this is a placeholder, please replace it with the actual conversion logic
+  return timestamp.toString();
+}
+
 export function handleDeposited(event: DepositedEvent): void {
   let account = loadOrCreateAccount(
     event.params.user.toHex(),
     event.block.timestamp
   );
-  account.lastUpdated = event.block.timestamp;
-  account.save();
 
-  createDeposit(account.id, event.params.amount, event.block.timestamp);
+  if (account != null) {
+    account.lastUpdated = event.block.timestamp;
+    account.save();
+
+    createDeposit(account.id, event.params.amount, event.block.timestamp);
+    // update daily balance
+    createOrUpdateDailyBalance(
+      account.id,
+      event.params.amount,
+      event.block.timestamp,
+      true
+    );
+  }
 }
 
 export function handleWithdrawn(event: WithdrawnEvent): void {
@@ -163,8 +217,18 @@ export function handleWithdrawn(event: WithdrawnEvent): void {
     event.params.user.toHex(),
     event.block.timestamp
   );
-  account.lastUpdated = event.block.timestamp;
-  account.save();
+  if (account != null) {
+    account.lastUpdated = event.block.timestamp;
+    account.save();
 
-  createWithdraw(account.id, event.params.amount, event.block.timestamp);
+    createWithdraw(account.id, event.params.amount, event.block.timestamp);
+
+    // update daily balance
+    createOrUpdateDailyBalance(
+      account.id,
+      event.params.amount,
+      event.block.timestamp,
+      false
+    );
+  }
 }
