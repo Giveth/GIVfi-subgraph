@@ -1,14 +1,45 @@
 type Account @entity {
   id: ID!
-  balances: [Balance!]! @derivedFrom(field: "account")
+  deposits: [Deposit!]! @derivedFrom(field: "account")
+  withdrawals: [Withdraw!]! @derivedFrom(field: "account")
   rewards: BigInt!
+  createdAt: BigInt!
+  lastUpdated: BigInt!
 }
 
-type Balance @entity {
+type Deposit @entity {
   id: ID!
   account: Account!
-  value: BigInt!
+  amount: BigInt!
   timestamp: BigInt!
+}
+
+type Withdraw @entity {
+  id: ID!
+  account: Account!
+  amount: BigInt!
+  timestamp: BigInt!
+}
+
+type Transfer @entity(immutable: true) {
+  id: Bytes!
+  from: Bytes! # address
+  to: Bytes! # address
+  value: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type FeesPaid @entity(immutable: true) {
+  id: Bytes!
+  user: Bytes! # address
+  recipient: Bytes! # address
+  shares: BigInt! # uint256
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
 }
 
 type Approval @entity(immutable: true) {
@@ -37,30 +68,9 @@ type FeeSet @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-type FeesPaid @entity(immutable: true) {
-  id: Bytes!
-  user: Bytes! # address
-  recipient: Bytes! # address
-  shares: BigInt! # uint256
-  amount: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
 type Initialized @entity(immutable: true) {
   id: Bytes!
   version: Int! # uint8
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type Transfer @entity(immutable: true) {
-  id: Bytes!
-  from: Bytes! # address
-  to: Bytes! # address
-  value: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!

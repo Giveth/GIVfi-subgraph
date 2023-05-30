@@ -6,14 +6,16 @@ import {
   FeesPaid as FeesPaidEvent,
   Initialized as InitializedEvent,
   Transfer as TransferEvent,
+  Deposited as DepositedEvent,
+  Withdrawn as WithdrawnEvent,
 } from '../generated/GIVfiBeefyV6/GIVfiBeefyV6';
 import {
   Account,
-  Balance,
   FeeRecipientSet,
   FeeSet,
   FeesPaid,
-  Transfer,
+  Deposit,
+  Withdraw,
 } from '../generated/schema';
 
 export function handleApproval(event: ApprovalEvent): void {
@@ -92,63 +94,77 @@ export function handleInitialized(event: InitializedEvent): void {
   // entity.save();
 }
 
+function loadOrCreateAccount(address: string, timestamp: BigInt): Account {
+  let account = Account.load(address);
+  if (account == null) {
+    account = new Account(address);
+    account.rewards = BigInt.fromI32(0);
+    account.createdAt = timestamp;
+    account.lastUpdated = timestamp;
+  }
+  return account as Account;
+}
+
 export function handleTransfer(event: TransferEvent): void {
-  let recipientAddressHex = event.params.to.toHex();
-  let vault = Account.load(recipientAddressHex);
-  if (vault == null) {
-    vault = new Account(recipientAddressHex);
-    vault.rewards = BigInt.fromI32(0);
-    vault.save();
-  }
-
-  let senderAddressHex = event.params.from.toHex();
-  let staker = Account.load(senderAddressHex);
-  if (
-    staker == null &&
-    senderAddressHex != '0x0000000000000000000000000000000000000000'
-  ) {
-    staker = new Account(senderAddressHex);
-    staker.rewards = BigInt.fromI32(0);
-    staker.save();
-  }
-
-  let transferRecord = new Transfer(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
+  let fromAccount = loadOrCreateAccount(
+    event.params.from.toHex(),
+    event.block.timestamp
   );
-  transferRecord.from = event.params.from;
-  transferRecord.to = event.params.to;
-  transferRecord.value = event.params.value;
-  transferRecord.blockNumber = event.block.number;
-  transferRecord.blockTimestamp = event.block.timestamp;
-  transferRecord.transactionHash = event.transaction.hash;
-  transferRecord.save();
+  fromAccount.lastUpdated = event.block.timestamp;
+  fromAccount.save();
 
-  let vaultBalanceID = recipientAddressHex;
-  let vaultBalance = Balance.load(vaultBalanceID);
-  if (vaultBalance == null) {
-    vaultBalance = new Balance(vaultBalanceID);
-    vaultBalance.account = vault.id;
-    vaultBalance.value = BigInt.fromI32(0);
-    vaultBalance.timestamp = event.block.timestamp;
-  }
+  let toAccount = loadOrCreateAccount(
+    event.params.to.toHex(),
+    event.block.timestamp
+  );
+  toAccount.lastUpdated = event.block.timestamp;
+  toAccount.save();
+}
 
-  vaultBalance.value = vaultBalance.value.plus(event.params.value);
-  vaultBalance.save();
+function createDeposit(
+  accountId: string,
+  amount: BigInt,
+  timestamp: BigInt
+): void {
+  let depositId = accountId.concat('-').concat(timestamp.toString());
+  let deposit = new Deposit(depositId);
+  deposit.account = accountId;
+  deposit.amount = amount;
+  deposit.timestamp = timestamp;
+  deposit.save();
+}
 
-  if (
-    senderAddressHex != '0x0000000000000000000000000000000000000000' &&
-    staker != null
-  ) {
-    let stakerBalanceID = senderAddressHex;
-    let stakerBalance = Balance.load(stakerBalanceID);
-    if (stakerBalance == null) {
-      stakerBalance = new Balance(stakerBalanceID);
-      stakerBalance.account = staker.id;
-      stakerBalance.value = BigInt.fromI32(0);
-      stakerBalance.timestamp = event.block.timestamp;
-    }
+function createWithdraw(
+  accountId: string,
+  amount: BigInt,
+  timestamp: BigInt
+): void {
+  let withdrawId = accountId.concat('-').concat(timestamp.toString());
+  let withdraw = new Withdraw(withdrawId);
+  withdraw.account = accountId;
+  withdraw.amount = amount;
+  withdraw.timestamp = timestamp;
+  withdraw.save();
+}
 
-    stakerBalance.value = stakerBalance.value.minus(event.params.value);
-    stakerBalance.save();
-  }
+export function handleDeposited(event: DepositedEvent): void {
+  let account = loadOrCreateAccount(
+    event.params.user.toHex(),
+    event.block.timestamp
+  );
+  account.lastUpdated = event.block.timestamp;
+  account.save();
+
+  createDeposit(account.id, event.params.amount, event.block.timestamp);
+}
+
+export function handleWithdrawn(event: WithdrawnEvent): void {
+  let account = loadOrCreateAccount(
+    event.params.user.toHex(),
+    event.block.timestamp
+  );
+  account.lastUpdated = event.block.timestamp;
+  account.save();
+
+  createWithdraw(account.id, event.params.amount, event.block.timestamp);
 }

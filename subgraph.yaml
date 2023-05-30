@@ -20,6 +20,8 @@ dataSources:
         - FeesPaid
         - Initialized
         - Transfer
+        - Deposited
+        - Withdrawn
       abis:
         - name: GIVfiBeefyV6
           file: ./abis/GIVfiBeefyV6.json
@@ -36,4 +38,8 @@ dataSources:
           handler: handleInitialized
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
+        - event: Deposited(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposited
+        - event: Withdrawn(indexed address,indexed address,uint256,uint256)
+          handler: handleWithdrawn
       file: ./src/givfi-beefy-v6.ts
